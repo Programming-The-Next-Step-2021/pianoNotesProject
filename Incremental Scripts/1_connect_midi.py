@@ -28,6 +28,7 @@ while True:
         #print(key_num,sensitivity)
 
 
+
 #while True:
 #    if input.poll():
 #        time = input.read(100)[0][1]
@@ -39,3 +40,4 @@ while True:
 
 
 midi.quit()
+

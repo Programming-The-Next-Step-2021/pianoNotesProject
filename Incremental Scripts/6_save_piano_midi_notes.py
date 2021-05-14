@@ -37,12 +37,12 @@ while True:
         if status ==144:
             key_id.append(key_num)
         # if key_id list is full break loop
-        if len(key_id) ==88:
+        if len(key_id) ==67:
             print("Thanks")
             break
 
 
-data = {'key_number' :list(range(1,87)) }
+data = {'key_number' :list(range(1,66)) }
 
 key_bindings2 = pd.DataFrame(data)
 key_bindings2 = pd.DataFrame(data)

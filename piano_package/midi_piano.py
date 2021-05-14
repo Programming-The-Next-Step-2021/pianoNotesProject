@@ -8,7 +8,7 @@ from psychopy.hardware.keyboard import Keyboard
 from pygame import midi
 
 
-class midi_piano:
+class midi_piano:   
     '''
     This class defines the properties of the midi piano and inicates the location of the note pictures (and maybe sound files).
     This is important as different midi pianos have different key_ids and inidcations of whether a button is pressed.
@@ -25,6 +25,8 @@ class midi_piano:
         List containig the path to the corresponding note picture
     key_id: list
         Contains the corresponding output id for the midi device
+    path: str
+        Contains path to Note directory
 
     --- Not in use yet ---
     mp3_files: list
@@ -37,11 +39,12 @@ class midi_piano:
     '''
     def __init__(self):
         self.input_id = None
-        self.key_total = 8
-        self.key_num = list(range(self.key_total))
+        self.key_total = None
+        self.key_num = None
         self.note_files = None
         self.key_id = None
         self.note_order = None
+        self.path = None
     
     def setup_midi(self,device = 'launchpad',key_total = None ,note_files = None):
         '''
@@ -52,8 +55,20 @@ class midi_piano:
             df = pd.read_csv("piano_package/launchpad_config.csv",index_col=0)
             # wd needs to be on pianoNoteProject for it to work
             self.input_id = 1
+            self.key_total = 8
+            self.key_num = list(range(self.key_total))
             self.note_files = df.note_files
             self.key_id = df.key_id
+            self.path = "piano_package/Notes/"
+        
+        if(device == 'piano1'):
+            df = pd.read_csv("piano_package/piano_config_67k.csv")
+            self.input_id = 1
+            self.key_total = 80
+            self.key_num = list(range(self.key_total))
+            self.note_files = df.note_files
+            self.key_id = df.key_id
+            self.path = "piano_package/Notes_piano/"
 
 
     def create_order_df(self,random= False):
@@ -108,7 +123,7 @@ class midi_piano:
             current_note = row['note_files']
             current_id = row['key_id']
 
-            stim_img = ImageStim(win, "piano_package/Notes/" + current_note)
+            stim_img = ImageStim(win, self.path + current_note)
 
             stim_right = TextStim(win,text='right')
             stim_wrong= TextStim(win,text='wrong')
@@ -119,7 +134,7 @@ class midi_piano:
             
             stim_img.draw()
             time_start = midi.time()
-            win.flip()
+            win.flip
             while True:
                 if input.poll():
                     midi_key = input.read(100)[0]

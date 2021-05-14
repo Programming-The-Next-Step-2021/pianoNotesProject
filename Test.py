@@ -1,13 +1,11 @@
 # This python file serves as a test for the package as it imports it and can be used to launch the progran
 
-from piano_package import midi_piano
 
-piano = midi_piano()
+import piano_package as pp
 
-piano.setup_midi()
 
-help(midi_piano)
+pp.test_run(device="piano1")
 
-piano.test_run()
+# piano.setup_midi(device="piano1")
 
-        
+# piano.test_run()

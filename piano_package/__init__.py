@@ -1,1 +1,1 @@
-from piano_package.midi_piano import midi_piano
+from piano_package.midi_piano2 import *
