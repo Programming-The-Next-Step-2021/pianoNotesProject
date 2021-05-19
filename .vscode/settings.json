@@ -1,5 +1,5 @@
 {
-    "python.pythonPath": "C:\\Program Files\\PsychoPy3\\python.exe",
+    "python.pythonPath": "C:\\Users\\User\\anaconda3\\envs\\pythonProject\\python.exe",
     "python.formatting.provider": "black",
     "python.testing.unittestArgs": [
         "-v",
