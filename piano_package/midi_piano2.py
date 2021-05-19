@@ -20,6 +20,7 @@ def setup_midi(input_id=1, device=None):
     Returns:
         [type]: [description]
     """
+    num = 0
 
     if device == None:
         print(
@@ -29,6 +30,7 @@ def setup_midi(input_id=1, device=None):
         3: keyboard (doesn't work yet)
         """
         )
+
         while True:
             try:
                 num = int(input())
@@ -40,8 +42,8 @@ def setup_midi(input_id=1, device=None):
     if device == "piano1" or num == 2:
         config_file_df = pd.read_csv("piano_package/piano_config_67k.csv", index_col=0)
         path = "piano_package/Notes_piano/"
-
-    elif device == "lauchpad" or num == 1:
+    elif device == "launchpad" or num == 1:
+        # global config_file_df
         config_file_df = pd.read_csv("piano_package/launchpad_config.csv", index_col=0)
         path = "/piano_package/Notes/"
     return (device, config_file_df, path)
