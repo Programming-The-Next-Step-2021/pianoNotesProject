@@ -1,3 +1,4 @@
+import imp
 import sys
 import os
 from PySide6.QtCore import (
@@ -17,16 +18,50 @@ from PySide6.QtWidgets import (
     QLabel,
     QMainWindow,
     QPushButton,
-    QVBoxLayout,
+    QCheckBox,
     QBoxLayout,
     QGridLayout,
     QLineEdit,
     QWidget,
 )
 import pandas as pd
+import ebisu
 from pygame import midi
-
+from datetime import datetime, timedelta
 from qt_material import apply_stylesheet
+
+def check_create_practice_frame():
+    print("hi")
+    if os.path.isfile("practice.csv") ==False:
+        practice_df = pd.read_csv("./piano_package/piano_config_67k.csv",index_col=0)
+        practice_df["include"] = False
+        practice_df["alpha"] = ""
+        practice_df["beta"] = ""
+        practice_df["half_life"] = ""
+        practice_df["last_test"] = ""
+        practice_df.to_csv("practice.csv")
+
+def getIndexForTesting(data,cutOff):
+    oneHour = timedelta(hours=1)
+    now = datetime.now()
+    pred_list = []
+    model_list = []
+    for i,row in data.iterrows():
+        prior = data.loc[i,["alpha","beta","half_life"]].tolist()
+        pred = ebisu.predictRecall(prior,
+                            (now -row['last_test']) / oneHour,
+                            exact=True)
+        pred_list.append(pred)
+        model_list.append(prior)
+    test_index =[i for i,n in enumerate(pred_list) if n < cutOff]
+    if len(test_index) ==0:
+        index_new =data.loc[data.alpha.isna(),:].index.tolist()
+        test_index.append(index_new[:5])
+
+    return(test_index[0],pred_list,model_list)
+
+
+def updatepractice()
 
 
 class WorkerSignal(QObject):
@@ -90,20 +125,23 @@ class MainWindow(QMainWindow):
 
         # this dropdown box is used whether one wants to test the whole setup
         self.options_menu = QComboBox()
-        self.options_menu.addItems(["midi input", "keyboard"])
+        self.options_menu.addItems(["MIDI piano" ,"computer keyboard"])
         # The start_button launches the reading of the data and adds notes
         self.start_button = QPushButton(text="Start?")
         self.start_button.clicked.connect(self.read_data_and_order)
 
+        # checkbox for practicing
+        self.practice_check= QCheckBox(text="practice")
+        
         # keyboard
         self.keyboard_input = QLineEdit()
 
-        self.keyboard_input.setMaxLength(10)
+        self.keyboard_input.setMaxLength(3)
         self.keyboard_input.setPlaceholderText("Enter the note here")
 
         # Feedback widget
 
-        self.feedback_widget = QLabel("Have fun practicing!!")
+        self.feedback_widget = QLabel("hi")
         self.feedback_widget.setAlignment(Qt.AlignCenter)
         # start ability to have multiple threads
 
@@ -117,7 +155,8 @@ class MainWindow(QMainWindow):
         layout = QGridLayout()
         layout.addWidget(self.options_menu, 0, 0)
         layout.addWidget(self.start_button, 0, 1)
-        layout.addWidget(self.note_widget, 1, 0, 3, 2)
+        layout.addWidget(self.practice_check,1,0)
+        layout.addWidget(self.note_widget, 2, 0, 3, 2)
         layout.addWidget(self.feedback_widget, 5, 0, 1, 2)
         layout.addWidget(self.keyboard_input, 6, 0, 1, 2)
         container = QWidget()
@@ -134,15 +173,32 @@ class MainWindow(QMainWindow):
         The file names and key id are then used to check whether the input is
         correct.
         """
+        check_create_practice_frame()
+        QThread.sleep(1)
         # read corresponding keys
         self.data = pd.read_csv("./piano_package/piano_config_67k.csv", index_col=0)
 
+        # TODO: implement that one can randomise order
         # all keys to be played are stored in self objects and will then accessed via an integer that
-        # changes after a note was pressed correctly/wrongly
 
-        self.keys = self.data.key_id
-        self.notes = self.data.note_files
-        self.note_names = self.data.note_names
+        if self.practice_check.isChecked():
+            self.practice_df = pd.read_csv("./practice.csv")
+
+            self.practice_df["last_test"] = pd.to_datetime(self.practice_df["last_test"])
+            
+            self.testing_index, self.recall_prob =getIndexForTesting(self.practice_df,cutOff=0.8)
+            
+            self.keys = self.practice_df.key_id[self.testing_index]
+            self.notes = self.practice_df.note_files[self.testing_index]
+            self.note_names = self.practice_df.note_names[self.testing_index]   
+
+        else:
+
+
+            
+            self.keys = self.data.key_id
+            self.notes = self.data.note_files
+            self.note_names = self.data.note_names
         # only clickable once after all
         self.start_button.setEnabled(False)
         self.i = 0
@@ -153,14 +209,14 @@ class MainWindow(QMainWindow):
         )
 
         # only start worker loop when no keyboard but midi input is used
-        if self.options_menu.currentText() == "keyboard":
+        if self.options_menu.currentText() == "computer keyboard":
             self.keyboard_input.returnPressed.connect(self.test_input)
         else:
             self.keyboard_input.setEnabled(False)
-            worker = Worker()
-            self.threadpool.start(worker)
+            self.worker = Worker()
+            self.threadpool.start(self.worker)
             # this takes the output/signal of the worker
-            worker.signal.result.connect(self.test_input)
+            self.worker.signal.result.connect(self.test_input)
 
     def test_input(self, input_key=None):
         """Checks whether keyboard/midi input matches displayed note.
@@ -184,22 +240,31 @@ class MainWindow(QMainWindow):
             QApplication.processEvents()
             QThread.sleep(1)
             self.feedback_widget.clear()
-            res =1
         elif input_key != self.keys[self.i] or input_key != self.note_names[self.i]:
             self.feedback_widget.setText(f"WRONG \n {self.note_names[self.i]}")
             QApplication.processEvents()
             QThread.sleep(1)
             self.feedback_widget.clear()
-            res =0
 
         # reset text input
         self.keyboard_input.clear()
 
         # increases integer index so next note strored in self.notes can be displayed
-        self.i = self.i + 1
+        
 
-        self.note_widget.setPixmap(
-            QPixmap("./piano_package/Notes_piano/" + self.notes[self.i])
-        )
-        return(res)
+        if self.i >= len(self.testing_index)-1:
+            self.note_widget.setText(f"Done \n Please close the program. \n If you want to learn more start it again")
+            QApplication.processEvents()
+            if self.options_menu.currentText() == "computer keyboard":
+                self.keyboard_input.setEnabled(False)
+            else:
+                self.worker.stop()
+            
+
+
+        else:
+            self.i = self.i + 1
+            self.note_widget.setPixmap(
+                QPixmap("./piano_package/Notes_piano/" + self.notes[self.i])
+            )
 

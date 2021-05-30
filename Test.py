@@ -1,8 +1,12 @@
-# This python file serves as a test for the package as it imports it and can be used to launch the progran
-
+from PySide6 import QtTest
+from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
+import unittest
 import piano_package as pp
 
-# pp.test_run(device="piano1")
 
-
-# piano.test_run()
+class TestDataLoading(unittest.TestCase):
+    def setup(self):
+        self.app = pp.QApplication(pp.sys.argv)
+        window = pp.MainWindow()
+        

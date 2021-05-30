@@ -1,32 +1,29 @@
 import unittest
+from PIL import Image
 
+import sys
 
 import piano_package as pp
 
 
-class TestNotes(unittest.TestCase):
+class TestNotesAndInput(unittest.TestCase):
     """
-    This test function checks whether the correct notes are loaded with the initialisation function
-    Because if the wrong notes are loaded, the whole programm doesn't work.
+    This testing unit is mainly useful for testing piano specifications
+
+    Especially when one implements another midi piano apart from mine
+    these testing functions can help with checking everything
+
+    Please run them inidvidually as otherwise errors occur
     """
 
-    def test_read_launchpad(self):
-        device, config_file_df, path = pp.setup_midi(device="launchpad")
 
-        test_list = [
-            "1_Treble_C4_Natural.png",
-            "2_Treble_D4_Natural.png",
-            "3_Treble_E4_Natural.png",
-            "4_Treble_F4_Natural.png",
-            "5_Treble_G4_Natural.png",
-            "6_Treble_A4_Natural.png",
-            "7_Treble_B4_Natural.png",
-            "8_Treble_C5_Natural.png",
-        ]
-        self.assertEqual(first=config_file_df.note_files.tolist(), second=test_list)
+    def test_piano_notes(self):
+        """ Tests whether notes read by GUI match the right ones
+        """
+        app = pp.QApplication(pp.sys.argv)
+        res = pp.MainWindow()
+        res.read_data_and_order()
 
-    def test_read_piano(self):
-        device, config_file_df, path = pp.setup_midi(device="piano1")
         test_list = [
             "16_Note-Bass-C2.png",
             "17_Note-Bass-C2s.png",
@@ -109,7 +106,39 @@ class TestNotes(unittest.TestCase):
             "62_Note-Treble-B5b.png",
             "63_Note-Treble-B5.png",
         ]
-        self.assertEqual(first=config_file_df.note_files.tolist(), second=test_list)
+        self.assertEqual(first=res.notes.tolist(), second=test_list)
+        #app.quit()
+        #app.exit()
+        #sys.exit(app.exec_())
+
+    def test_input_check(self):
+        """Tests whether first correct midi key is recognised
+        """
+        app = pp.QApplication(pp.sys.argv)
+        res = pp.MainWindow()
+        res.read_data_and_order()
+        result =res.test_input(input_key=36)
+        self.assertEqual(first=result,second=1)
+        app.quit()
+        app.exit()
+        sys.exit(app.exec_())
+
+
+    def test_image_show(self):
+        """Tests whether image read by gui is shown
+
+        """
+        app = pp.QApplication(pp.sys.argv)
+        res = pp.MainWindow()
+        res.read_data_and_order()
+        note = res.notes[0]
+        try: 
+            image = Image.open("./piano_package/Notes_piano/" + note)
+        except:
+            self.fail("Note image couldn't be loaded")
+        #app.quit()
+        #app.exit()
+        #sys.exit(app.exec_())
 
 
 if __name__ == "__main__":

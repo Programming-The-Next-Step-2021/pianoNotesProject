@@ -13,10 +13,13 @@ from PySide6.QtCore import (
 from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QApplication,
+    QComboBox,
     QLabel,
     QMainWindow,
     QPushButton,
     QVBoxLayout,
+    QBoxLayout,
+    QGridLayout,
     QWidget,
 )
 import pandas as pd
@@ -26,7 +29,7 @@ from qt_material import apply_stylesheet
 
 
 class WorkerSignal(QObject):
-    """[summary]
+    """Class that can be called if we need t
 
     Args:
         QObject ([type]): [description]
@@ -36,11 +39,10 @@ class WorkerSignal(QObject):
 
 
 class Worker(QRunnable):
-    """
-    This worker is necessary to enable the continous reading of the midi input
+    """ Class that allows for listening to MIDI input without freezing of GUI
 
-    This is due to the fact that the GUI normally runs a loop that reacts to user input (e.g. buttons)
-    But if we start a while loop to catch the MIDI input it blocks and freezes the main loop of the gui
+    PySide/PyQT works by having a main loop that listens to all input elements such as a button press.
+    But in order to detect the midi 
     -> thus manipulating the note pictures and giving feedback becomes inpossible
     So this function creates a worker that we will pass as another thread to monitors the midi loop and gives and indication of which key is pressed
     """
@@ -68,6 +70,9 @@ class Worker(QRunnable):
                     self.signal.result.emit((key_id))
 
 
+# self.start_button.setText(s)
+
+
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
@@ -78,7 +83,8 @@ class MainWindow(QMainWindow):
         # Let's load necessary dataframe for launchpad
 
         # this dropdown box is used whether one wants to test the whole setup
-
+        self.options_menu = QComboBox()
+        self.options_menu.addItems(["test", "practice", "keyboard"])
         # The start_button launches the reading of the data and adds notes
         self.start_button = QPushButton(text="Start?")
         self.start_button.clicked.connect(self.read_data_and_order)
@@ -91,20 +97,21 @@ class MainWindow(QMainWindow):
 
         self.note_widget.setAlignment(Qt.AlignCenter)
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.start_button)
-        layout.addWidget(self.note_widget)
+        layout = QGridLayout()
+        layout.addWidget(self.options_menu, 0, 0)
+        layout.addWidget(self.start_button, 0, 1)
+        layout.addWidget(self.note_widget, 1, 0, 3, 2)
 
         container = QWidget()
         container.setLayout(layout)
 
         self.setCentralWidget(container)
 
-        self.setFixedSize(QSize(1000, 600))
+        self.setFixedSize(QSize(500, 600))
 
     def read_data_and_order(self):
         """
-        This function reads 
+        This function reads the correct note files which are then cross checked with the input
         """
         # read corresponding keys
         self.data = pd.read_csv("./piano_package/piano_config_67k.csv", index_col=0)
@@ -153,14 +160,6 @@ class MainWindow(QMainWindow):
             QPixmap("./piano_package/Notes_piano/" + self.notes[self.i])
         )
         # self.start_button.setText(s)
-
-    def midi_beta(self):
-        key_binding = pd.read_csv("piano_package/launchpad_config.csv", index_col=0)
-        for idx, row in key_binding.iterrows():
-            self.widget.setPixmap(QPixmap("piano_package/Notes/" + row["note_files"]))
-            QApplication.processEvents()
-            QThread.sleep(2)
-        print("end")
 
 
 # create the application and the main window
